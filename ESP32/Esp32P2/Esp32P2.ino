@@ -21,7 +21,7 @@ const char* password = "Mebe2ege";
 
 // Dirección IP del broker MQTT (servidor Mosquitto)
 // Cambiar por la IP del equipo donde corre Mosquitto
-const char* mqtt_server = "10.10.3.203";
+const char* mqtt_server = "10.10.3.158";
 
 // Puerto MQTT por defecto
 const int mqtt_port = 1883;
