@@ -1,0 +1,836 @@
+[
+    {
+        "id": "1e60a01a40afbb6d",
+        "type": "tab",
+        "label": "Invernadero IoT",
+        "disabled": false,
+        "info": "Uplink + Downlink en un solo flujo"
+    },
+    {
+        "id": "289f8288f0e61a3d",
+        "type": "mqtt in",
+        "z": "1e60a01a40afbb6d",
+        "name": "ESP32 Sensores",
+        "topic": "invernadero/sensores",
+        "qos": "0",
+        "datatype": "auto",
+        "broker": "broker-local",
+        "inputs": 0,
+        "x": 120,
+        "y": 100,
+        "wires": [
+            [
+                "0a6ee3be088fc300"
+            ]
+        ]
+    },
+    {
+        "id": "0a6ee3be088fc300",
+        "type": "json",
+        "z": "1e60a01a40afbb6d",
+        "name": "Parsear JSON",
+        "property": "payload",
+        "action": "obj",
+        "x": 300,
+        "y": 100,
+        "wires": [
+            [
+                "8a02be08e33c6335"
+            ]
+        ]
+    },
+    {
+        "id": "8a02be08e33c6335",
+        "type": "function",
+        "z": "1e60a01a40afbb6d",
+        "name": "Agregar timestamp + guardar contexto",
+        "func": "// Enriquecer payload con timestamp ISO 8601\nmsg.payload.timestamp = new Date().toISOString();\n\n// Guardar en contexto del flujo para el dashboard\nflow.set('ultimosSensores', msg.payload);\n\n// Header necesario para la API\nmsg.headers = { 'Content-Type': 'application/json' };\n\nnode.status({ fill: 'green', shape: 'dot', text: 'temp: ' + msg.payload.temp + '°C' });\n\nreturn msg;",
+        "outputs": 1,
+        "x": 520,
+        "y": 100,
+        "wires": [
+            [
+                "b413897a2d191bdb",
+                "2818337ae4f7e4b0",
+                "b224ccd40bbc5cb6"
+            ]
+        ]
+    },
+    {
+        "id": "b413897a2d191bdb",
+        "type": "delay",
+        "z": "1e60a01a40afbb6d",
+        "name": "1 msg cada 5s",
+        "pauseType": "rate",
+        "timeout": "5",
+        "timeoutUnits": "seconds",
+        "rate": "1",
+        "nbRateUnits": "5",
+        "rateUnits": "second",
+        "randomFirst": "1",
+        "randomLast": "5",
+        "randomUnits": "seconds",
+        "drop": true,
+        "outputs": 1,
+        "x": 780,
+        "y": 40,
+        "wires": [
+            [
+                "5e00f48bc384188b"
+            ]
+        ]
+    },
+    {
+        "id": "5e00f48bc384188b",
+        "type": "http request",
+        "z": "1e60a01a40afbb6d",
+        "name": "POST /datos → Render",
+        "method": "POST",
+        "ret": "obj",
+        "paytoqs": "ignore",
+        "url": "https://api-iot-examen-2.onrender.com/datos",
+        "tls": "",
+        "persist": false,
+        "proxy": "",
+        "authType": "",
+        "x": 980,
+        "y": 100,
+        "wires": [
+            [
+                "caab5c2bfd1577ed"
+            ]
+        ]
+    },
+    {
+        "id": "caab5c2bfd1577ed",
+        "type": "function",
+        "z": "1e60a01a40afbb6d",
+        "name": "Verificar respuesta API",
+        "func": "if (msg.statusCode === 200 || msg.statusCode === 201) {\n    node.status({ fill: 'green', shape: 'dot', text: '✓ ' + msg.statusCode + ' OK — ' + new Date().toLocaleTimeString() });\n} else {\n    node.status({ fill: 'red', shape: 'ring', text: '✗ Error ' + msg.statusCode });\n}\nreturn msg;",
+        "outputs": 1,
+        "x": 1180,
+        "y": 100,
+        "wires": [
+            [
+                "b124b61896d71f77"
+            ]
+        ]
+    },
+    {
+        "id": "2818337ae4f7e4b0",
+        "type": "debug",
+        "z": "1e60a01a40afbb6d",
+        "name": "Ver payload local",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "x": 760,
+        "y": 180,
+        "wires": []
+    },
+    {
+        "id": "b124b61896d71f77",
+        "type": "debug",
+        "z": "1e60a01a40afbb6d",
+        "name": "Ver respuesta API",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "x": 1380,
+        "y": 100,
+        "wires": []
+    },
+    {
+        "id": "21a63ec5051f0cc1",
+        "type": "inject",
+        "z": "1e60a01a40afbb6d",
+        "name": "Cada 5 segundos",
+        "props": [
+            {
+                "p": "payload"
+            }
+        ],
+        "repeat": "5",
+        "crontab": "",
+        "once": true,
+        "onceDelay": "1",
+        "payload": "",
+        "payloadType": "date",
+        "x": 120,
+        "y": 420,
+        "wires": [
+            [
+                "e019680dd348f2a0"
+            ]
+        ]
+    },
+    {
+        "id": "e019680dd348f2a0",
+        "type": "http request",
+        "z": "1e60a01a40afbb6d",
+        "name": "GET /comandos/pendientes",
+        "method": "GET",
+        "ret": "obj",
+        "url": "https://api-iot-examen-2.onrender.com/comandos/pendientes",
+        "x": 330,
+        "y": 420,
+        "wires": [
+            [
+                "16a67a2b531bf611"
+            ]
+        ]
+    },
+    {
+        "id": "16a67a2b531bf611",
+        "type": "function",
+        "z": "1e60a01a40afbb6d",
+        "name": "¿Hay comandos?",
+        "func": "// La API devuelve un array de comandos pendientes\nlet comandos = msg.payload;\n\n// Si no es array o está vacío, no hacer nada\nif (!Array.isArray(comandos) || comandos.length === 0) {\n    node.status({ fill: 'grey', shape: 'ring', text: 'Sin comandos — ' + new Date().toLocaleTimeString() });\n    return null;\n}\n\nnode.status({ fill: 'yellow', shape: 'dot', text: comandos.length + ' comando(s) recibidos' });\n\n// Enviar cada comando como mensaje separado\nlet mensajes = comandos.map(cmd => ({ payload: cmd }));\nreturn [mensajes];",
+        "outputs": 1,
+        "x": 560,
+        "y": 420,
+        "wires": [
+            [
+                "8468b386455483a8"
+            ]
+        ]
+    },
+    {
+        "id": "8468b386455483a8",
+        "type": "function",
+        "z": "1e60a01a40afbb6d",
+        "name": "Rutear por actuador",
+        "func": "let cmd = msg.payload;\nlet actuador = cmd.actuador;\nlet accion = cmd.accion;\n\n// Guardar modo manual en contexto\nflow.set('modo', 'manual');\n\nif (actuador === 'riego') {\n    msg.topic = 'invernadero/control/riego';\n    msg.payload = accion;\n    node.status({ fill: 'blue', shape: 'dot', text: 'Riego → ' + accion });\n    return [msg, null];\n} else if (actuador === 'ventilador') {\n    msg.topic = 'invernadero/control/ventilador';\n    msg.payload = accion;\n    node.status({ fill: 'blue', shape: 'dot', text: 'Ventilador → ' + accion });\n    return [null, msg];\n}\nreturn null;",
+        "outputs": 2,
+        "x": 790,
+        "y": 420,
+        "wires": [
+            [
+                "15bf724b58b58ac3"
+            ],
+            [
+                "e331d68e4b85f2d0"
+            ]
+        ]
+    },
+    {
+        "id": "15bf724b58b58ac3",
+        "type": "mqtt out",
+        "z": "1e60a01a40afbb6d",
+        "name": "MQTT → Riego",
+        "topic": "invernadero/control/riego",
+        "qos": "0",
+        "retain": false,
+        "broker": "broker-local",
+        "x": 1020,
+        "y": 380,
+        "wires": []
+    },
+    {
+        "id": "e331d68e4b85f2d0",
+        "type": "mqtt out",
+        "z": "1e60a01a40afbb6d",
+        "name": "MQTT → Ventilador",
+        "topic": "invernadero/control/ventilador",
+        "qos": "0",
+        "retain": false,
+        "broker": "broker-local",
+        "x": 1020,
+        "y": 460,
+        "wires": []
+    },
+    {
+        "id": "926de1392bc634d8",
+        "type": "mqtt in",
+        "z": "1e60a01a40afbb6d",
+        "name": "Escuchar ACK ESP32",
+        "topic": "invernadero/ack",
+        "qos": "0",
+        "datatype": "auto",
+        "broker": "broker-local",
+        "inputs": 0,
+        "x": 120,
+        "y": 600,
+        "wires": [
+            [
+                "35ff9f55480e7949"
+            ]
+        ]
+    },
+    {
+        "id": "35ff9f55480e7949",
+        "type": "json",
+        "z": "1e60a01a40afbb6d",
+        "name": "Parsear ACK",
+        "x": 310,
+        "y": 600,
+        "wires": [
+            [
+                "0d6cad6d05975dd8"
+            ]
+        ]
+    },
+    {
+        "id": "0d6cad6d05975dd8",
+        "type": "function",
+        "z": "1e60a01a40afbb6d",
+        "name": "Actualizar estado actuadores",
+        "func": "let ack = msg.payload;\n// ack = { actuador: 'ventilador', estado: 'ON', ts: 1234567890 }\n\n// Guardar estado en contexto del flujo\nlet actuadores = flow.get('actuadores') || { riego: 'OFF', ventilador: 'OFF' };\nactuadores[ack.actuador] = ack.estado;\nflow.set('actuadores', actuadores);\n\nnode.status({ fill: 'green', shape: 'dot', text: ack.actuador + ' → ' + ack.estado });\n\n// Preparar mensaje para el dashboard\nmsg.payload = ack;\nmsg.topic = ack.actuador;\n\nreturn msg;",
+        "outputs": 1,
+        "x": 530,
+        "y": 600,
+        "wires": [
+            [
+                "0d916f47090b4003",
+                "66b5c369da6c3fd8"
+            ]
+        ]
+    },
+    {
+        "id": "0d916f47090b4003",
+        "type": "function",
+        "z": "1e60a01a40afbb6d",
+        "name": "Enviar a Dashboard",
+        "func": "// Separar por actuador para actualizar cada indicador visual\nlet ack = msg.payload;\n\nif (ack.actuador === 'riego') {\n    msg.payload = ack.estado;\n    return [msg, null];\n} else if (ack.actuador === 'ventilador') {\n    msg.payload = ack.estado;\n    return [null, msg];\n}\nreturn null;",
+        "outputs": 2,
+        "x": 780,
+        "y": 600,
+        "wires": [
+            [
+                "30207195a7948634"
+            ],
+            [
+                "d2561b9a71c870a6"
+            ]
+        ]
+    },
+    {
+        "id": "30207195a7948634",
+        "type": "ui_text",
+        "z": "1e60a01a40afbb6d",
+        "group": "grupo-actuadores",
+        "order": 1,
+        "width": 3,
+        "height": 1,
+        "name": "Estado Riego",
+        "label": "💧 Riego",
+        "format": "{{msg.payload}}",
+        "layout": "row-spread",
+        "x": 1010,
+        "y": 560,
+        "wires": []
+    },
+    {
+        "id": "d2561b9a71c870a6",
+        "type": "ui_text",
+        "z": "1e60a01a40afbb6d",
+        "group": "grupo-actuadores",
+        "order": 2,
+        "width": 3,
+        "height": 1,
+        "name": "Estado Ventilador",
+        "label": "🌀 Ventilador",
+        "format": "{{msg.payload}}",
+        "layout": "row-spread",
+        "x": 1010,
+        "y": 640,
+        "wires": []
+    },
+    {
+        "id": "66b5c369da6c3fd8",
+        "type": "debug",
+        "z": "1e60a01a40afbb6d",
+        "name": "Debug ACK",
+        "active": true,
+        "tosidebar": true,
+        "complete": "payload",
+        "x": 760,
+        "y": 680,
+        "wires": []
+    },
+    {
+        "id": "0dbaf421ae592055",
+        "type": "ui_gauge",
+        "z": "1e60a01a40afbb6d",
+        "name": "Temperatura",
+        "group": "grupo-sensores",
+        "order": 1,
+        "width": 4,
+        "height": 3,
+        "gtype": "gage",
+        "title": "Temperatura",
+        "label": "°C",
+        "format": "{{value}}",
+        "min": 0,
+        "max": 50,
+        "colors": [
+            "#00b500",
+            "#e6e600",
+            "#ca3838"
+        ],
+        "seg1": 25,
+        "seg2": 32,
+        "x": 500,
+        "y": 900,
+        "wires": []
+    },
+    {
+        "id": "cac19e664d3665ad",
+        "type": "ui_gauge",
+        "z": "1e60a01a40afbb6d",
+        "name": "Humedad",
+        "group": "grupo-sensores",
+        "order": 2,
+        "width": 4,
+        "height": 3,
+        "gtype": "gage",
+        "title": "Humedad",
+        "label": "%",
+        "format": "{{value}}",
+        "min": 0,
+        "max": 100,
+        "colors": [
+            "#ca3838",
+            "#e6e600",
+            "#00b500"
+        ],
+        "seg1": 35,
+        "seg2": 70,
+        "x": 500,
+        "y": 960,
+        "wires": []
+    },
+    {
+        "id": "b2d3184eb3a5d0ff",
+        "type": "ui_gauge",
+        "z": "1e60a01a40afbb6d",
+        "name": "CO2",
+        "group": "grupo-sensores",
+        "order": 3,
+        "width": 4,
+        "height": 3,
+        "gtype": "gage",
+        "title": "CO2",
+        "label": "ppm",
+        "format": "{{value}}",
+        "min": 0,
+        "max": 1000,
+        "colors": [
+            "#00b500",
+            "#e6e600",
+            "#ca3838"
+        ],
+        "seg1": 400,
+        "seg2": 700,
+        "x": 500,
+        "y": 1020,
+        "wires": []
+    },
+    {
+        "id": "888b4d5371caaca4",
+        "type": "ui_chart",
+        "z": "1e60a01a40afbb6d",
+        "name": "Historial Temperatura",
+        "group": "grupo-historico",
+        "order": 1,
+        "width": 12,
+        "height": 4,
+        "label": "Temperatura (°C)",
+        "chartType": "line",
+        "legend": "false",
+        "xformat": "HH:mm:ss",
+        "interpolate": "linear",
+        "nodata": "Sin datos aún",
+        "dot": false,
+        "ymin": "0",
+        "ymax": "50",
+        "removeOlder": 30,
+        "removeOlderPoints": "30",
+        "removeOlderUnit": "3600",
+        "cutout": 0,
+        "colors": [
+            "#1565c0"
+        ],
+        "outputs": 1,
+        "x": 500,
+        "y": 1080,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "b224ccd40bbc5cb6",
+        "type": "function",
+        "z": "1e60a01a40afbb6d",
+        "name": "Distribuir a gauges",
+        "func": "let d = msg.payload;\nlet ts = new Date();\n// Actualizar lógica automática también\nlet modo = flow.get('modo') || 'automatico';\nif (modo === 'automatico') {\n    if (d.temp > 32) {\n        let m = { payload: JSON.stringify({ actuador: 'ventilador', accion: 'ON' }), headers: { 'Content-Type': 'application/json' } };\n        node.send([null, null, null, null, m, null]);\n    } else if (d.hum < 35) {\n        let m = { payload: JSON.stringify({ actuador: 'riego', accion: 'ON' }), headers: { 'Content-Type': 'application/json' } };\n        node.send([null, null, null, null, null, m]);\n    } else {\n        // Desactivar ambos\n        let mv = { payload: JSON.stringify({ actuador: 'ventilador', accion: 'OFF' }), headers: { 'Content-Type': 'application/json' } };\n        let mr = { payload: JSON.stringify({ actuador: 'riego', accion: 'OFF' }), headers: { 'Content-Type': 'application/json' } };\n        node.send([null, null, null, null, mv, mr]);\n    }\n}\nreturn [\n    { payload: d.temp },\n    { payload: d.hum },\n    { payload: d.co2 },\n    { payload: d.temp, topic: 'Temperatura' }\n];",
+        "outputs": 6,
+        "x": 280,
+        "y": 960,
+        "wires": [
+            [
+                "0dbaf421ae592055"
+            ],
+            [
+                "cac19e664d3665ad"
+            ],
+            [
+                "b2d3184eb3a5d0ff"
+            ],
+            [
+                "888b4d5371caaca4"
+            ],
+            [
+                "7b69d2d88d3a3b4a"
+            ],
+            [
+                "757d7461d05c8a23"
+            ]
+        ]
+    },
+    {
+        "id": "7b69d2d88d3a3b4a",
+        "type": "http request",
+        "z": "1e60a01a40afbb6d",
+        "name": "AUTO POST ventilador",
+        "method": "POST",
+        "ret": "obj",
+        "url": "https://api-iot-examen-2.onrender.com/control",
+        "x": 560,
+        "y": 1140,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "757d7461d05c8a23",
+        "type": "http request",
+        "z": "1e60a01a40afbb6d",
+        "name": "AUTO POST riego",
+        "method": "POST",
+        "ret": "obj",
+        "url": "https://api-iot-examen-2.onrender.com/control",
+        "x": 560,
+        "y": 1200,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "f89da6e9ada63ef5",
+        "type": "ui_button",
+        "z": "1e60a01a40afbb6d",
+        "name": "Riego ON",
+        "group": "grupo-control",
+        "order": 1,
+        "width": 2,
+        "height": 1,
+        "passthru": false,
+        "label": "💧 Riego ON",
+        "tooltip": "",
+        "color": "",
+        "bgcolor": "#00b500",
+        "payload": "{\"actuador\":\"riego\",\"accion\":\"ON\"}",
+        "payloadType": "json",
+        "topic": "",
+        "x": 120,
+        "y": 1300,
+        "wires": [
+            [
+                "51a96c93c9025a64"
+            ]
+        ]
+    },
+    {
+        "id": "af960e7a28d3d8f7",
+        "type": "ui_button",
+        "z": "1e60a01a40afbb6d",
+        "name": "Riego OFF",
+        "group": "grupo-control",
+        "order": 2,
+        "width": 2,
+        "height": 1,
+        "passthru": false,
+        "label": "💧 Riego OFF",
+        "tooltip": "",
+        "color": "",
+        "bgcolor": "#ca3838",
+        "payload": "{\"actuador\":\"riego\",\"accion\":\"OFF\"}",
+        "payloadType": "json",
+        "topic": "",
+        "x": 120,
+        "y": 1360,
+        "wires": [
+            [
+                "51a96c93c9025a64"
+            ]
+        ]
+    },
+    {
+        "id": "6f2eb60a81a88925",
+        "type": "ui_button",
+        "z": "1e60a01a40afbb6d",
+        "name": "Ventilador ON",
+        "group": "grupo-control",
+        "order": 3,
+        "width": 2,
+        "height": 1,
+        "passthru": false,
+        "label": "🌀 Ventilador ON",
+        "tooltip": "",
+        "color": "",
+        "bgcolor": "#00b500",
+        "payload": "{\"actuador\":\"ventilador\",\"accion\":\"ON\"}",
+        "payloadType": "json",
+        "topic": "",
+        "x": 120,
+        "y": 1420,
+        "wires": [
+            [
+                "51a96c93c9025a64"
+            ]
+        ]
+    },
+    {
+        "id": "83dd99658ec6b432",
+        "type": "ui_button",
+        "z": "1e60a01a40afbb6d",
+        "name": "Ventilador OFF",
+        "group": "grupo-control",
+        "order": 4,
+        "width": 2,
+        "height": 1,
+        "passthru": false,
+        "label": "🌀 Ventilador OFF",
+        "tooltip": "",
+        "color": "",
+        "bgcolor": "#ca3838",
+        "payload": "{\"actuador\":\"ventilador\",\"accion\":\"OFF\"}",
+        "payloadType": "json",
+        "topic": "",
+        "x": 120,
+        "y": 1480,
+        "wires": [
+            [
+                "51a96c93c9025a64"
+            ]
+        ]
+    },
+    {
+        "id": "51a96c93c9025a64",
+        "type": "function",
+        "z": "1e60a01a40afbb6d",
+        "name": "Preparar POST /control",
+        "func": "flow.set('modo', 'manual');\nmsg.headers = { 'Content-Type': 'application/json' };\nmsg.payload = JSON.stringify(msg.payload);\nreturn msg;",
+        "outputs": 1,
+        "x": 360,
+        "y": 1390,
+        "wires": [
+            [
+                "676965f2802d2f97",
+                "aa33862a100bdab3"
+            ]
+        ]
+    },
+    {
+        "id": "676965f2802d2f97",
+        "type": "http request",
+        "z": "1e60a01a40afbb6d",
+        "name": "POST /control → API",
+        "method": "POST",
+        "ret": "obj",
+        "url": "https://api-iot-examen-2.onrender.com/control",
+        "x": 580,
+        "y": 1390,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "aa33862a100bdab3",
+        "type": "function",
+        "z": "1e60a01a40afbb6d",
+        "name": "Modo → MANUAL",
+        "func": "msg.payload = 'MANUAL';\nreturn msg;",
+        "outputs": 1,
+        "x": 580,
+        "y": 1460,
+        "wires": [
+            [
+                "df764e74269e614f"
+            ]
+        ]
+    },
+    {
+        "id": "df764e74269e614f",
+        "type": "ui_text",
+        "z": "1e60a01a40afbb6d",
+        "group": "grupo-info",
+        "order": 1,
+        "width": 4,
+        "height": 1,
+        "name": "Modo",
+        "label": "⚙️ Modo",
+        "format": "{{msg.payload}}",
+        "layout": "row-spread",
+        "x": 780,
+        "y": 1460,
+        "wires": []
+    },
+    {
+        "id": "3017eef4cb88fbed",
+        "type": "inject",
+        "z": "1e60a01a40afbb6d",
+        "name": "URL API",
+        "props": [
+            {
+                "p": "payload"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": true,
+        "onceDelay": "0.5",
+        "payload": "https://api-iot-examen-2.onrender.com",
+        "payloadType": "str",
+        "x": 120,
+        "y": 1560,
+        "wires": [
+            [
+                "795e5a16f0e61834"
+            ]
+        ]
+    },
+    {
+        "id": "795e5a16f0e61834",
+        "type": "ui_text",
+        "z": "1e60a01a40afbb6d",
+        "group": "grupo-info",
+        "order": 2,
+        "width": 8,
+        "height": 1,
+        "name": "URL API",
+        "label": "🌐 API URL",
+        "format": "{{msg.payload}}",
+        "layout": "row-spread",
+        "x": 340,
+        "y": 1560,
+        "wires": []
+    },
+    {
+        "id": "7c095d6aef089d3a",
+        "type": "inject",
+        "z": "1e60a01a40afbb6d",
+        "name": "Modo inicial AUTOMATICO",
+        "props": [
+            {
+                "p": "payload"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": true,
+        "onceDelay": "0.5",
+        "payload": "AUTOMATICO",
+        "payloadType": "str",
+        "x": 140,
+        "y": 1620,
+        "wires": [
+            [
+                "df764e74269e614f"
+            ]
+        ]
+    },
+    {
+        "id": "broker-local",
+        "type": "mqtt-broker",
+        "name": "Mosquitto Local",
+        "broker": "10.10.3.203",
+        "port": "1883",
+        "clientid": "nodered-uplink",
+        "autoConnect": true,
+        "usetls": false,
+        "protocolVersion": "4",
+        "keepalive": "60",
+        "cleansession": true,
+        "autoUnsubscribe": true,
+        "birthTopic": "",
+        "birthQos": "0",
+        "birthPayload": "",
+        "birthMsg": {},
+        "closeTopic": "",
+        "closeQos": "0",
+        "closePayload": "",
+        "closeMsg": {},
+        "willTopic": "",
+        "willQos": "0",
+        "willPayload": "",
+        "willMsg": {},
+        "userProps": "",
+        "sessionExpiry": ""
+    },
+    {
+        "id": "grupo-actuadores",
+        "type": "ui_group",
+        "name": "Actuadores",
+        "tab": "ui-tab-invernadero",
+        "order": 2,
+        "disp": true,
+        "width": "6"
+    },
+    {
+        "id": "grupo-sensores",
+        "type": "ui_group",
+        "name": "Sensores",
+        "tab": "ui-tab-invernadero",
+        "order": 1,
+        "disp": true,
+        "width": "12"
+    },
+    {
+        "id": "grupo-historico",
+        "type": "ui_group",
+        "name": "Histórico Temperatura",
+        "tab": "ui-tab-invernadero",
+        "order": 2,
+        "disp": true,
+        "width": "12"
+    },
+    {
+        "id": "grupo-control",
+        "type": "ui_group",
+        "name": "Control Actuadores",
+        "tab": "ui-tab-invernadero",
+        "order": 3,
+        "disp": true,
+        "width": "12"
+    },
+    {
+        "id": "grupo-info",
+        "type": "ui_group",
+        "name": "Info Sistema",
+        "tab": "ui-tab-invernadero",
+        "order": 4,
+        "disp": true,
+        "width": "12"
+    },
+    {
+        "id": "ui-tab-invernadero",
+        "type": "ui_tab",
+        "name": "Invernadero",
+        "icon": "dashboard",
+        "order": 1
+    },
+    {
+        "id": "c410991d78e7f312",
+        "type": "global-config",
+        "env": [],
+        "modules": {
+            "node-red-dashboard": "3.6.6"
+        }
+    }
+]
