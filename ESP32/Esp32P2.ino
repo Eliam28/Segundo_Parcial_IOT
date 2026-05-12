@@ -3,21 +3,31 @@
 #include <DHT.h>
 #include <ArduinoJson.h>
 
+//LEDS
+// Actuadores indicadores:
+// GPIO 23 -> LED indicador del ventilador
+// GPIO 22 -> LED indicador del sistema de riego
+const int Ventilador= 23;
+const int Riego= 22;
 
-// CAMBIAR ESTO
-const char* ssid = "INFINITUMD8A4_2.4";
+// Nombre de la red WiFi a la que se conectará el ESP32
+// Cambiar por el SSID de la red local
+const char* ssid = "Alumno";
 
-// CAMBIAR ESTO
-const char* password = "wRwQR6e52m";
+// Contraseña de la red WiFi
+// Cambiar por la contraseña correcta de la red
+const char* password = "Mebe2ege";
 
 
-// CAMBIAR ESTO
-const char* mqtt_server = "192.168.1.198";
+// Dirección IP del broker MQTT (servidor Mosquitto)
+// Cambiar por la IP del equipo donde corre Mosquitto
+const char* mqtt_server = "10.10.3.203";
 
 // Puerto MQTT por defecto
 const int mqtt_port = 1883;
 
 // Topics
+// Canales MQTT para comunicación con Node-RED
 const char* topic_sensores = "invernadero/sensores";
 const char* topic_riego = "invernadero/control/riego";
 const char* topic_ventilador = "invernadero/control/ventilador";
@@ -25,11 +35,16 @@ const char* topic_ack = "invernadero/ack";
 
 
 // DHT22
+// Sensor ambiental:
+// GPIO 4 -> Sensor DHT22 (temperatura y humedad)
 #define DHTPIN 4
 #define DHTTYPE DHT22
 DHT dht(DHTPIN, DHTTYPE);
 
 // Relays
+// Actuadores principales:
+// GPIO 32 -> Relay del sistema de riego
+// GPIO 33 -> Relay del ventilador
 #define RELAY_RIEGO 32
 #define RELAY_VENTILADOR 33
 
@@ -90,6 +105,8 @@ void callback(char* topic, byte* payload, unsigned int length) {
       digitalWrite(RELAY_RIEGO, LOW);
 
       Serial.println("Riego ACTIVADO");
+      digitalWrite(Riego,HIGH);
+      delay(10);
 
       enviarACK("riego", "ON");
     }
@@ -98,6 +115,8 @@ void callback(char* topic, byte* payload, unsigned int length) {
       digitalWrite(RELAY_RIEGO, HIGH);
 
       Serial.println("Riego DESACTIVADO");
+      digitalWrite(Riego,LOW);
+      delay(10);
 
       enviarACK("riego", "OFF");
     }
@@ -111,6 +130,9 @@ void callback(char* topic, byte* payload, unsigned int length) {
       digitalWrite(RELAY_VENTILADOR, LOW);
 
       Serial.println("Ventilador ACTIVADO");
+      digitalWrite(Ventilador,HIGH);
+      delay(10);
+
 
       enviarACK("ventilador", "ON");
     }
@@ -119,6 +141,8 @@ void callback(char* topic, byte* payload, unsigned int length) {
       digitalWrite(RELAY_VENTILADOR, HIGH);
 
       Serial.println("Ventilador DESACTIVADO");
+      digitalWrite(Ventilador,LOW);
+      delay(10);
 
       enviarACK("ventilador", "OFF");
     }
@@ -174,7 +198,7 @@ void reconnectMQTT() {
   }
 }
 
-
+// Configuración inicial de pines, sensores y conexión WiFi/MQTT
 void setup() {
 
   Serial.begin(9600);
@@ -183,7 +207,8 @@ void setup() {
   Serial.println("================================");
   Serial.println("INICIANDO SISTEMA INVERNADERO");
   Serial.println("================================");
-
+  pinMode(Riego,OUTPUT);
+  pinMode(Ventilador,OUTPUT);
 
   pinMode(RELAY_RIEGO, OUTPUT);
   pinMode(RELAY_VENTILADOR, OUTPUT);
@@ -205,6 +230,11 @@ void setup() {
   Serial.println("Sistema listo");
 }
 
+
+// Ciclo principal:
+// - Mantiene conexión MQTT
+// - Lee sensores
+// - Envía datos cada 5 segundos
 void loop() {
 
   if (!client.connected()) {
@@ -249,6 +279,7 @@ void loop() {
 
     Serial.println("");
     Serial.println("========== DATOS ENVIADOS ==========");
+    
 
     Serial.print("Temperatura: ");
     Serial.print(temperatura);
